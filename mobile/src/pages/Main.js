@@ -1,13 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Image, View, Text } from "react-native";
+import {
+  StyleSheet,
+  Image,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity
+} from "react-native";
 import MapView, { Marker, Callout } from "react-native-maps";
 import {
   requestPermissionsAsync,
   getCurrentPositionAsync
 } from "expo-location";
 
+import { MaterialIcons } from "@expo/vector-icons";
+
+import api from "../services/api";
+
 function Main({ navigation }) {
+  const [devs, setDevs] = useState([]);
   const [currentRegion, setCurrentRegion] = useState(null);
+  const [techs, setTechs] = useState("");
 
   useEffect(() => {
     async function loadInitialPosition() {
@@ -32,36 +45,79 @@ function Main({ navigation }) {
     loadInitialPosition();
   }, []);
 
+  async function loadDevs() {
+    const { latitude, longitude } = currentRegion;
+
+    const response = await api.get("/search", {
+      params: {
+        latitude,
+        longitude,
+        techs
+      }
+    });
+
+    console.log(response.data.devs);
+    setDevs(response.data.devs);
+  }
+
+  function handleRegionChanged(region) {
+    setCurrentRegion(region);
+  }
+
   if (!currentRegion) {
     return null;
   }
 
   return (
-    <MapView initialRegion={currentRegion} style={styles.map}>
-      <Marker coordinate={{ latitude: -8.7383773, longitude: -63.893295 }}>
-        <Image
-          style={styles.avatar}
-          source={{
-            uri: "https://avatars3.githubusercontent.com/u/28835924?v=4"
-          }}
+    <>
+      <MapView
+        onRegionChangeComplete={handleRegionChanged}
+        initialRegion={currentRegion}
+        style={styles.map}
+      >
+        {devs.map(dev => (
+          <Marker
+            key={dev._id}
+            coordinate={{
+              latitude: dev.location.coordinates[0],
+              longitude: dev.location.coordinates[1]
+            }}
+          >
+            <Image style={styles.avatar} source={{ uri: dev.avatar_url }} />
+
+            <Callout
+              onPress={() => {
+                //navegação
+                navigation.navigate("Profile", {
+                  github_username: { github_username: dev.github_username }
+                });
+              }}
+            >
+              <View style={styles.callout}>
+                <Text style={styles.devName}>{dev.name}</Text>
+                <Text style={styles.devBio}>{dev.bio}</Text>
+                <Text style={styles.devTechs}>{dev.techs.join(", ")}</Text>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
+      </MapView>
+      <View style={styles.searchForm}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar devs por techs..."
+          placeholderTextColor="#999"
+          autoCapitalize="words"
+          autoCorrect={false}
+          value={techs}
+          onChangeText={setTechs}
         />
 
-        <Callout
-          onPress={() => {
-            //navegação
-            navigation.navigate("Profile", {
-              github_username: "viniciusnascimento95"
-            });
-          }}
-        >
-          <View style={styles.callout}>
-            <Text style={styles.devName}>Vinicius nascimento</Text>
-            <Text style={styles.devBio}>Scrum master DINFO</Text>
-            <Text style={styles.devTechs}>PHP laravel python</Text>
-          </View>
-        </Callout>
-      </Marker>
-    </MapView>
+        <TouchableOpacity onPress={loadDevs} style={styles.loadButton}>
+          <MaterialIcons name="my-location" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </>
   );
 }
 
@@ -89,6 +145,42 @@ const styles = StyleSheet.create({
   },
   devTechs: {
     marginTop: 5
+  },
+
+  searchForm: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    zIndex: 5,
+    flexDirection: "row"
+  },
+
+  searchInput: {
+    flex: 1,
+    height: 50,
+    backgroundColor: "#fff",
+    color: "#333",
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: {
+      width: 4,
+      height: 4
+    },
+    elevation: 2
+  },
+
+  loadButton: {
+    width: 50,
+    height: 50,
+    backgroundColor: "#8e4dff",
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 15
   }
 });
 

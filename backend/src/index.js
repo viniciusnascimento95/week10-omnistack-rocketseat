@@ -6,7 +6,8 @@ const routes = require("./routes");
 const app = express();
 
 mongoose.connect(
-  "mongodb+srv://omnistack:334412852@cluster0-cwyfy.mongodb.net/week10?retryWrites=true&w=majority",
+  "mongodb+srv://omnistack:334412852@cluster0-k7om5.mongodb.net/test?retryWrites=true&w=majority",
+  // "mongodb://localhost:27017/week10",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -16,5 +17,4 @@ mongoose.connect(
 app.use(cors());
 app.use(express.json());
 app.use(routes);
-
 app.listen(3333);
